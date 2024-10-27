@@ -4,6 +4,8 @@ import mediapipe as mp
 import argparse
 
 def process_img(img, face_detection):
+    H, W, _ = img.shape
+
     img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     out = face_detection.process(img_rgb)
 
@@ -28,8 +30,8 @@ def process_img(img, face_detection):
 
 args = argparse.ArgumentParser()
 
-args.add_argument("--mode", default='image')
-args.add_argument("--filePath", default='./Shocked Black Guy.jpg')
+args.add_argument("--mode", default='webcam') #can change webcam to video or image ->
+args.add_argument("--filePath", default=None) #None -> (filepath)
 
 args = args.parse_args()
 
@@ -45,13 +47,45 @@ with mp_face_detection.FaceDetection(model_selection=0, min_detection_confidence
     
     if args.mode in ["image"]:
         # read image
-        img_path = './Shocked Black Guy.jpg'
+        img_path = './data/Shocked Black Guy.jpg'
 
         img = cv2.imread(img_path)
         img = cv2.resize(img, (0,0), fx=0.5, fy=0.5)
-        H, W, _ = img.shape
 
-    img = process_img(img, face_detection)
+        img = process_img(img, face_detection)
         
-    # save image
-    cv2.imwrite(os.path.join(output_dir, 'blurredFace.png'), img)
+        # save image
+        cv2.imwrite(os.path.join(output_dir, 'blurredFace.png'), img)
+    
+    elif args.mode in ['video']:
+
+        cap = cv2.VideoCapture(args.filePath)
+        ret, frame = cap.read()
+
+        output_video = cv2.VideoWriter(os.path.join(output_dir, 'output.mp4'),
+                                        cv2.VideoWriter_fourcc(*'MP+V'), #codec
+                                        25, #frame rate
+                                        (frame.shape[1], frame.shape[0]))
+
+        while ret:
+            frame = process_img(frame, face_detection)
+
+            output_video.write(frame)
+
+            ret, frame = cap.read()
+        
+        cap.release()
+        output_video.release()
+    
+    elif args.mode in ['webcam']:
+        cap = cv2.VideoCapture(0)
+
+        ret, frame = cap.read()
+        while ret:
+            frame = process_img(frame, face_detection)
+
+            cv2.imshow('frame', frame)
+            if cv2.waitKey(25) == ord('q'):
+                break
+            ret, frame = cap.read()
+        cap.release()
