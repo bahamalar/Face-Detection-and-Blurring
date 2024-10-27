@@ -1,23 +1,9 @@
 import os
 import cv2
 import mediapipe as mp
+import argparse
 
-output_dir = './output'
-if not os.path.exists(output_dir):
-    os.makedirs(output_dir)
-
-# read image
-img_path = './Shocked Black Guy.jpg'
-
-img = cv2.imread(img_path)
-img = cv2.resize(img, (0,0), fx=0.5, fy=0.5)
-
-H, W, _ = img.shape
-
-# detect faces
-mp_face_detection = mp.solutions.face_detection
-
-with mp_face_detection.FaceDetection(model_selection=0, min_detection_confidence=0.5) as face_detection:
+def process_img(img, face_detection):
     img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     out = face_detection.process(img_rgb)
 
@@ -38,6 +24,34 @@ with mp_face_detection.FaceDetection(model_selection=0, min_detection_confidence
             # blur faces
             img[y1:y1+h, x1:x1+w, :] = cv2.blur(img[y1:y1+h, x1:x1+w, :], (30,30))
     
+    return img
 
-# save image
-cv2.imwrite(os.path.join(output_dir, 'blurredFace.png'), img)
+args = argparse.ArgumentParser()
+
+args.add_argument("--mode", default='image')
+args.add_argument("--filePath", default='./Shocked Black Guy.jpg')
+
+args = args.parse_args()
+
+output_dir = './output'
+if not os.path.exists(output_dir):
+    os.makedirs(output_dir)
+
+
+# detect faces
+mp_face_detection = mp.solutions.face_detection
+
+with mp_face_detection.FaceDetection(model_selection=0, min_detection_confidence=0.5) as face_detection:
+    
+    if args.mode in ["image"]:
+        # read image
+        img_path = './Shocked Black Guy.jpg'
+
+        img = cv2.imread(img_path)
+        img = cv2.resize(img, (0,0), fx=0.5, fy=0.5)
+        H, W, _ = img.shape
+
+    img = process_img(img, face_detection)
+        
+    # save image
+    cv2.imwrite(os.path.join(output_dir, 'blurredFace.png'), img)
